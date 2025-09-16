@@ -112,14 +112,12 @@ const NetworkPage = () => {
         .on("drag", dragged)
         .on("end", dragended));
 
-    // Add movie posters as circles with background images
+    // Add movie circles with gradients (fallback if poster fails)
     node.append("circle")
       .attr("r", d => d.type === "central" ? 60 : 45)
       .attr("class", "network-node-image")
       .style("fill", d => {
-        if (d.poster_url) {
-          return `url(#pattern-${d.id})`;
-        }
+        // Use gradient colors as base
         return d.type === "central" ? "#ff6b6b" : "#4ecdc4";
       })
       .style("stroke", d => d.type === "central" ? "#ff6b6b" : "#4ecdc4")
@@ -130,41 +128,66 @@ const NetworkPage = () => {
           : "drop-shadow(0 0 10px rgba(78, 205, 196, 0.4))"
       );
 
-    // Create patterns for movie posters
-    const defs = svg.append("defs");
-    nodes.forEach(d => {
-      if (d.poster_url) {
-        const pattern = defs.append("pattern")
-          .attr("id", `pattern-${d.id}`)
-          .attr("x", 0)
-          .attr("y", 0)
-          .attr("width", 1)
-          .attr("height", 1);
-
-        pattern.append("image")
-          .attr("href", d.poster_url)
-          .attr("x", 0)
-          .attr("y", 0)
-          .attr("width", d.type === "central" ? 120 : 90)
-          .attr("height", d.type === "central" ? 120 : 90)
-          .attr("preserveAspectRatio", "xMidYMid slice");
-      }
-    });
-
     // Add movie titles
     node.append("text")
       .attr("class", "network-node-text")
-      .attr("dy", d => d.type === "central" ? 85 : 65)
+      .attr("dy", 5)
       .style("fill", "white")
       .style("font-family", "Inter, sans-serif")
-      .style("font-size", d => d.type === "central" ? "14px" : "12px")
-      .style("font-weight", "600")
+      .style("font-size", d => d.type === "central" ? "16px" : "13px")
+      .style("font-weight", "700")
+      .style("text-anchor", "middle")
+      .style("pointer-events", "none")
+      .style("text-shadow", "0 0 15px rgba(0, 0, 0, 0.9)")
+      .each(function(d) {
+        const text = d3.select(this);
+        const words = d.title.split(' ');
+        const maxCharsPerLine = d.type === "central" ? 10 : 8;
+        let line = [];
+        let lineNumber = 0;
+        const lineHeight = 1.1;
+        const dy = d.type === "central" ? -10 : -5;
+        
+        text.text(null);
+        
+        words.forEach(word => {
+          line.push(word);
+          const testLine = line.join(' ');
+          if (testLine.length > maxCharsPerLine && line.length > 1) {
+            line.pop();
+            text.append('tspan')
+              .attr('x', 0)
+              .attr('dy', lineNumber === 0 ? dy : lineHeight + 'em')
+              .text(line.join(' '));
+            line = [word];
+            lineNumber++;
+          }
+        });
+        
+        if (line.length > 0) {
+          text.append('tspan')
+            .attr('x', 0)
+            .attr('dy', lineNumber === 0 ? dy : lineHeight + 'em')
+            .text(line.join(' '));
+        }
+      });
+
+    // Add subtitle with movie rating
+    node.append("text")
+      .attr("class", "network-node-subtitle")
+      .attr("dy", d => d.type === "central" ? 45 : 35)
+      .style("fill", "rgba(255, 255, 255, 0.8)")
+      .style("font-family", "Inter, sans-serif")
+      .style("font-size", d => d.type === "central" ? "12px" : "10px")
+      .style("font-weight", "400")
       .style("text-anchor", "middle")
       .style("pointer-events", "none")
       .style("text-shadow", "0 0 10px rgba(0, 0, 0, 0.8)")
       .text(d => {
-        const maxLength = d.type === "central" ? 20 : 15;
-        return d.title.length > maxLength ? d.title.substring(0, maxLength) + "..." : d.title;
+        // Get the movie data to show rating
+        const movieData = d.type === "central" ? networkData.central_movie : 
+          networkData.related_movies.find(m => m.id === d.id);
+        return movieData ? `★ ${movieData.vote_average.toFixed(1)}` : '';
       });
 
     // Add click handler for nodes
@@ -189,12 +212,13 @@ const NetworkPage = () => {
         d3.select(this).select("circle")
           .transition()
           .duration(200)
-          .style("filter", "drop-shadow(0 0 15px rgba(78, 205, 196, 0.8)) brightness(1.2)");
+          .attr("r", 55)
+          .style("filter", "drop-shadow(0 0 25px rgba(78, 205, 196, 0.9)) brightness(1.3)");
         
-        d3.select(this).select("text")
+        d3.select(this).selectAll("text")
           .transition()
           .duration(200)
-          .style("font-size", "14px");
+          .style("font-weight", "800");
       }
     })
     .on("mouseleave", function(event, d) {
@@ -202,12 +226,13 @@ const NetworkPage = () => {
         d3.select(this).select("circle")
           .transition()
           .duration(200)
+          .attr("r", 45)
           .style("filter", "drop-shadow(0 0 10px rgba(78, 205, 196, 0.4))");
         
-        d3.select(this).select("text")
+        d3.select(this).selectAll("text")
           .transition()
           .duration(200)
-          .style("font-size", "12px");
+          .style("font-weight", d.type === "central" ? "700" : "700");
       }
     });
 
@@ -245,22 +270,35 @@ const NetworkPage = () => {
     // Entrance animation
     container.style("opacity", 0)
       .transition()
-      .duration(1000)
+      .duration(1500)
       .style("opacity", 1);
 
-    // Initial zoom to fit content
-    const bounds = container.node().getBBox();
-    const fullWidth = bounds.width;
-    const fullHeight = bounds.height;
-    const widthRatio = width / fullWidth;
-    const heightRatio = height / fullHeight;
-    const scale = Math.min(widthRatio, heightRatio) * 0.8;
-    
-    svg.transition()
-      .duration(1000)
-      .call(zoom.transform, d3.zoomIdentity
-        .translate(width / 2 - bounds.x - fullWidth / 2, height / 2 - bounds.y - fullHeight / 2)
-        .scale(scale));
+    // Animate nodes entrance
+    node.style("opacity", 0)
+      .transition()
+      .delay((d, i) => i * 200)
+      .duration(800)
+      .style("opacity", 1)
+      .style("transform", "scale(1)");
+
+    // Initial zoom to fit content - do this after a delay to ensure nodes are positioned
+    setTimeout(() => {
+      const bounds = container.node().getBBox();
+      const fullWidth = bounds.width;
+      const fullHeight = bounds.height;
+      const widthRatio = (width * 0.8) / fullWidth;
+      const heightRatio = (height * 0.8) / fullHeight;
+      const scale = Math.min(widthRatio, heightRatio, 1);
+      
+      if (fullWidth > 0 && fullHeight > 0) {
+        svg.transition()
+          .duration(1000)
+          .call(zoom.transform, d3.zoomIdentity
+            .translate((width - fullWidth * scale) / 2 - bounds.x * scale, 
+                      (height - fullHeight * scale) / 2 - bounds.y * scale)
+            .scale(scale));
+      }
+    }, 1000);
   };
 
   if (loading) {
