@@ -274,37 +274,72 @@ const NetworkPage = () => {
       }
     });
 
-    // Efeitos de hover
+    // Efeitos de hover com tooltip
     node.on("mouseenter", function(event, d) {
+      // Mostrar tooltip com sinopse
+      const movieData = d.type === "central" ? networkData.central_movie : 
+        networkData.related_movies.find(m => m.id === d.id);
+      
+      if (movieData && movieData.overview) {
+        tooltip
+          .style("visibility", "visible")
+          .html(`
+            <div style="font-weight: bold; margin-bottom: 8px; color: #FFD700;">
+              ${movieData.title}
+            </div>
+            <div style="font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.9);">
+              ${movieData.overview}
+            </div>
+            <div style="margin-top: 8px; font-size: 11px; color: rgba(255,255,255,0.7);">
+              Avaliação: ★ ${movieData.vote_average?.toFixed(1)} • ${movieData.release_date ? new Date(movieData.release_date).getFullYear() : 'N/A'}
+            </div>
+          `);
+      }
+
+      // Efeitos visuais de hover
       if (d.type === "related") {
-        d3.select(this).select("circle")
+        d3.select(this).select("rect")
           .transition()
           .duration(200)
-          .attr("r", 60)
-          .style("filter", "drop-shadow(0 0 30px rgba(46, 213, 115, 0.8)) brightness(1.2)")
+          .attr("width", 105)
+          .attr("height", 157.5)
+          .attr("x", -52.5)
+          .attr("y", -78.75)
+          .style("filter", "drop-shadow(0 0 30px rgba(46, 213, 115, 0.9)) brightness(1.1)")
           .style("stroke-width", 4);
         
         d3.select(this).selectAll("text")
           .transition()
           .duration(200)
-          .style("font-weight", "900")
-          .style("font-size", d => d.type === "central" ? "14px" : "13px");
+          .style("font-weight", "800");
       }
     })
+    .on("mousemove", function(event) {
+      // Mover tooltip com o mouse
+      tooltip
+        .style("top", (event.pageY - 10) + "px")
+        .style("left", (event.pageX + 15) + "px");
+    })
     .on("mouseleave", function(event, d) {
+      // Esconder tooltip
+      tooltip.style("visibility", "hidden");
+
+      // Reverter efeitos visuais
       if (d.type === "related") {
-        d3.select(this).select("circle")
+        d3.select(this).select("rect")
           .transition()
           .duration(200)
-          .attr("r", 50)
+          .attr("width", 90)
+          .attr("height", 135)
+          .attr("x", -45)
+          .attr("y", -67.5)
           .style("filter", "drop-shadow(0 0 15px rgba(46, 213, 115, 0.5))")
           .style("stroke-width", 3);
         
         d3.select(this).selectAll("text")
           .transition()
           .duration(200)
-          .style("font-weight", "800")
-          .style("font-size", d => d.type === "central" ? "14px" : "12px");
+          .style("font-weight", "700");
       }
     });
 
