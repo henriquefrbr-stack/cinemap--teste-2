@@ -82,15 +82,15 @@ const NetworkPage = () => {
       target: node.id
     }));
 
-    // Criar simulação de força mais controlada
+    // Criar simulação de força mais controlada para cartazes
     const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id(d => d.id).distance(Math.min(width, height) * 0.25).strength(0.8))
-      .force("charge", d3.forceManyBody().strength(-800)) // Força repulsiva mais forte
+      .force("link", d3.forceLink(links).id(d => d.id).distance(Math.min(width, height) * 0.28).strength(0.7))
+      .force("charge", d3.forceManyBody().strength(-1000)) // Força repulsiva mais forte para cartazes
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(70)) // Evitar sobreposição
-      .force("radial", d3.forceRadial(Math.min(width, height) * 0.25, width / 2, height / 2).strength(0.3))
-      .alpha(0.5) // Reduzir movimento inicial
-      .alphaDecay(0.02); // Desaceleração mais rápida
+      .force("collision", d3.forceCollide().radius(d => d.type === "central" ? 90 : 70)) // Maior raio para cartazes
+      .force("radial", d3.forceRadial(Math.min(width, height) * 0.28, width / 2, height / 2).strength(0.4))
+      .alpha(0.4) // Reduzir movimento inicial
+      .alphaDecay(0.015); // Desaceleração mais suave
 
     // Comportamento de zoom
     const zoom = d3.zoom()
