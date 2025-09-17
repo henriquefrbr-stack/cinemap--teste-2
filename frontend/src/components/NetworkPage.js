@@ -113,6 +113,51 @@ const NetworkPage = () => {
       .style("stroke-width", 3)
       .style("opacity", 0.8);
 
+    // Criar definições para padrões de imagens
+    const defs = svg.append("defs");
+    
+    // Criar padrões para cartazes dos filmes
+    nodes.forEach(d => {
+      if (d.poster_url) {
+        const pattern = defs.append("pattern")
+          .attr("id", `poster-pattern-${d.id}`)
+          .attr("x", 0)
+          .attr("y", 0)
+          .attr("width", 1)
+          .attr("height", 1)
+          .attr("patternContentUnits", "objectBoundingBox");
+
+        pattern.append("image")
+          .attr("href", d.poster_url)
+          .attr("x", 0)
+          .attr("y", 0)
+          .attr("width", 1)
+          .attr("height", 1)
+          .attr("preserveAspectRatio", "xMidYMid slice")
+          .on("error", function() {
+            // Se a imagem falhar, remove o padrão
+            d3.select(`#poster-pattern-${d.id}`).remove();
+          });
+      }
+    });
+
+    // Criar tooltip
+    const tooltip = d3.select("body").append("div")
+      .attr("class", "movie-tooltip")
+      .style("position", "absolute")
+      .style("visibility", "hidden")
+      .style("background", "rgba(0, 0, 0, 0.9)")
+      .style("color", "white")
+      .style("padding", "12px")
+      .style("border-radius", "8px")
+      .style("font-family", "Inter, sans-serif")
+      .style("font-size", "14px")
+      .style("max-width", "300px")
+      .style("z-index", "1000")
+      .style("backdrop-filter", "blur(10px)")
+      .style("border", "1px solid rgba(255, 255, 255, 0.2)")
+      .style("box-shadow", "0 10px 30px rgba(0, 0, 0, 0.5)");
+
     // Criar grupos de nós
     const node = container.append("g")
       .selectAll("g")
@@ -125,19 +170,39 @@ const NetworkPage = () => {
         .on("drag", dragged)
         .on("end", dragended));
 
-    // Adicionar círculos dos filmes
-    node.append("circle")
-      .attr("r", d => d.type === "central" ? 70 : 50)
-      .attr("class", "network-node-image")
-      .style("fill", d => d.type === "central" ? "#ff4757" : "#2ed573")
+    // Adicionar círculos/retângulos dos filmes
+    node.append("rect")
+      .attr("width", d => d.type === "central" ? 120 : 90)
+      .attr("height", d => d.type === "central" ? 180 : 135)
+      .attr("x", d => d.type === "central" ? -60 : -45)
+      .attr("y", d => d.type === "central" ? -90 : -67.5)
+      .attr("rx", 8)
+      .attr("ry", 8)
+      .attr("class", "network-node-poster")
+      .style("fill", d => {
+        // Usar cartaz se disponível, senão usar cor sólida
+        return d.poster_url ? `url(#poster-pattern-${d.id})` : 
+               (d.type === "central" ? "#ff4757" : "#2ed573");
+      })
       .style("stroke", d => d.type === "central" ? "#ff3742" : "#20bf6b")
-      .style("stroke-width", d => d.type === "central" ? 5 : 3)
+      .style("stroke-width", d => d.type === "central" ? 4 : 3)
       .style("filter", d => 
         d.type === "central" 
           ? "drop-shadow(0 0 25px rgba(255, 71, 87, 0.7))"
           : "drop-shadow(0 0 15px rgba(46, 213, 115, 0.5))"
       )
-      .style("opacity", 0.9);
+      .style("opacity", 0.95);
+
+    // Adicionar overlay para filmes sem cartaz (para mostrar ícone de filme)
+    node.filter(d => !d.poster_url)
+      .append("text")
+      .attr("dy", 5)
+      .style("fill", "white")
+      .style("font-size", d => d.type === "central" ? "40px" : "30px")
+      .style("text-anchor", "middle")
+      .style("pointer-events", "none")
+      .style("opacity", 0.8)
+      .text("🎬");
 
     // Adicionar títulos dos filmes
     node.append("text")
