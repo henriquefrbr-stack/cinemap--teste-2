@@ -204,25 +204,24 @@ const NetworkPage = () => {
       .style("opacity", 0.8)
       .text("🎬");
 
-    // Adicionar títulos dos filmes
+    // Adicionar títulos dos filmes (abaixo do cartaz)
     node.append("text")
       .attr("class", "network-node-text")
-      .attr("dy", 5)
+      .attr("dy", d => d.type === "central" ? 105 : 85)
       .style("fill", "white")
       .style("font-family", "Inter, sans-serif")
       .style("font-size", d => d.type === "central" ? "14px" : "12px")
-      .style("font-weight", "800")
+      .style("font-weight", "700")
       .style("text-anchor", "middle")
       .style("pointer-events", "none")
-      .style("text-shadow", "0 0 15px rgba(0, 0, 0, 0.9)")
+      .style("text-shadow", "0 0 10px rgba(0, 0, 0, 0.8)")
       .each(function(d) {
         const text = d3.select(this);
         const words = d.title.split(' ');
-        const maxCharsPerLine = d.type === "central" ? 12 : 10;
+        const maxCharsPerLine = d.type === "central" ? 16 : 12;
         let line = [];
         let lineNumber = 0;
-        const lineHeight = 1.2;
-        const dy = d.type === "central" ? -8 : -6;
+        const lineHeight = 1.1;
         
         text.text(null);
         
@@ -233,7 +232,7 @@ const NetworkPage = () => {
             line.pop();
             text.append('tspan')
               .attr('x', 0)
-              .attr('dy', lineNumber === 0 ? dy : lineHeight + 'em')
+              .attr('dy', lineNumber === 0 ? 0 : lineHeight + 'em')
               .text(line.join(' '));
             line = [word];
             lineNumber++;
@@ -243,22 +242,22 @@ const NetworkPage = () => {
         if (line.length > 0) {
           text.append('tspan')
             .attr('x', 0)
-            .attr('dy', lineNumber === 0 ? dy : lineHeight + 'em')
+            .attr('dy', lineNumber === 0 ? 0 : lineHeight + 'em')
             .text(line.join(' '));
         }
       });
 
-    // Adicionar avaliações
+    // Adicionar avaliações (abaixo do título)
     node.append("text")
       .attr("class", "network-node-rating")
-      .attr("dy", d => d.type === "central" ? 50 : 40)
-      .style("fill", "rgba(255, 255, 255, 0.9)")
+      .attr("dy", d => d.type === "central" ? 135 : 110)
+      .style("fill", "#FFD700")
       .style("font-family", "Inter, sans-serif")
       .style("font-size", d => d.type === "central" ? "13px" : "11px")
       .style("font-weight", "600")
       .style("text-anchor", "middle")
       .style("pointer-events", "none")
-      .style("text-shadow", "0 0 10px rgba(0, 0, 0, 0.8)")
+      .style("text-shadow", "0 0 8px rgba(0, 0, 0, 0.8)")
       .text(d => `★ ${d.vote_average?.toFixed(1) || 'N/A'}`);
 
     // Manipuladores de clique
