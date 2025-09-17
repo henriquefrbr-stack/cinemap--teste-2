@@ -419,6 +419,11 @@ const NetworkPage = () => {
     setTimeout(() => {
       simulation.stop();
     }, 5000);
+
+    // Cleanup tooltip quando componente desmonta
+    return () => {
+      d3.select(".movie-tooltip").remove();
+    };
   };
 
   if (loading) {
