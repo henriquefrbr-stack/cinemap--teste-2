@@ -23,7 +23,7 @@ const NetworkPage = () => {
       const response = await axios.get(`${API}/movies/${id}/network`);
       setNetworkData(response.data);
     } catch (error) {
-      console.error("Error fetching network data:", error);
+      console.error("Erro ao buscar dados da rede:", error);
     } finally {
       setLoading(false);
     }
@@ -42,30 +42,39 @@ const NetworkPage = () => {
     const width = window.innerWidth;
     const height = window.innerHeight;
 
-    // Create nodes and links data
+    // Criar dados dos nós e links
     const centralNode = {
       id: networkData.central_movie.id,
       title: networkData.central_movie.title,
       poster_url: networkData.central_movie.poster_url,
-      type: "central",
-      x: width / 2,
-      y: height / 2,
-      fx: width / 2, // Fixed position for central node
-      fy: height / 2
+      vote_average: networkData.central_movie.vote_average,
+      type: "central"
     };
 
     const relatedNodes = networkData.related_movies.map((movie, index) => {
+      // Posicionar os nós relacionados em círculo ao redor do central
       const angle = (index / networkData.related_movies.length) * 2 * Math.PI;
-      const radius = 250;
+      const radius = Math.min(width, height) * 0.25; // 25% da menor dimensão da tela
+      
       return {
         id: movie.id,
         title: movie.title,
         poster_url: movie.poster_url,
+        vote_average: movie.vote_average,
         type: "related",
+        // Posições iniciais fixas em círculo
         x: width / 2 + Math.cos(angle) * radius,
-        y: height / 2 + Math.sin(angle) * radius
+        y: height / 2 + Math.sin(angle) * radius,
+        fx: width / 2 + Math.cos(angle) * radius, // Fixar posição inicial
+        fy: height / 2 + Math.sin(angle) * radius
       };
     });
+
+    // Definir posição fixa do nó central
+    centralNode.x = width / 2;
+    centralNode.y = height / 2;
+    centralNode.fx = width / 2;
+    centralNode.fy = height / 2;
 
     const nodes = [centralNode, ...relatedNodes];
     const links = relatedNodes.map(node => ({
@@ -73,16 +82,19 @@ const NetworkPage = () => {
       target: node.id
     }));
 
-    // Create force simulation
+    // Criar simulação de força mais controlada
     const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id(d => d.id).distance(250))
-      .force("charge", d3.forceManyBody().strength(-300))
+      .force("link", d3.forceLink(links).id(d => d.id).distance(Math.min(width, height) * 0.25).strength(0.8))
+      .force("charge", d3.forceManyBody().strength(-800)) // Força repulsiva mais forte
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius(80));
+      .force("collision", d3.forceCollide().radius(70)) // Evitar sobreposição
+      .force("radial", d3.forceRadial(Math.min(width, height) * 0.25, width / 2, height / 2).strength(0.3))
+      .alpha(0.5) // Reduzir movimento inicial
+      .alphaDecay(0.02); // Desaceleração mais rápida
 
-    // Create zoom behavior
+    // Comportamento de zoom
     const zoom = d3.zoom()
-      .scaleExtent([0.5, 3])
+      .scaleExtent([0.3, 2])
       .on("zoom", (event) => {
         container.attr("transform", event.transform);
       });
@@ -91,16 +103,17 @@ const NetworkPage = () => {
 
     const container = svg.append("g");
 
-    // Create links
+    // Criar links
     const link = container.append("g")
       .selectAll("line")
       .data(links)
       .join("line")
       .attr("class", "network-link")
-      .style("stroke", "rgba(255, 255, 255, 0.3)")
-      .style("stroke-width", 2);
+      .style("stroke", "rgba(255, 255, 255, 0.4)")
+      .style("stroke-width", 3)
+      .style("opacity", 0.8);
 
-    // Create node groups
+    // Criar grupos de nós
     const node = container.append("g")
       .selectAll("g")
       .data(nodes)
@@ -112,41 +125,39 @@ const NetworkPage = () => {
         .on("drag", dragged)
         .on("end", dragended));
 
-    // Add movie circles with gradients (fallback if poster fails)
+    // Adicionar círculos dos filmes
     node.append("circle")
-      .attr("r", d => d.type === "central" ? 60 : 45)
+      .attr("r", d => d.type === "central" ? 70 : 50)
       .attr("class", "network-node-image")
-      .style("fill", d => {
-        // Use gradient colors as base
-        return d.type === "central" ? "#ff6b6b" : "#4ecdc4";
-      })
-      .style("stroke", d => d.type === "central" ? "#ff6b6b" : "#4ecdc4")
-      .style("stroke-width", d => d.type === "central" ? 4 : 2)
+      .style("fill", d => d.type === "central" ? "#ff4757" : "#2ed573")
+      .style("stroke", d => d.type === "central" ? "#ff3742" : "#20bf6b")
+      .style("stroke-width", d => d.type === "central" ? 5 : 3)
       .style("filter", d => 
         d.type === "central" 
-          ? "drop-shadow(0 0 20px rgba(255, 107, 107, 0.6))"
-          : "drop-shadow(0 0 10px rgba(78, 205, 196, 0.4))"
-      );
+          ? "drop-shadow(0 0 25px rgba(255, 71, 87, 0.7))"
+          : "drop-shadow(0 0 15px rgba(46, 213, 115, 0.5))"
+      )
+      .style("opacity", 0.9);
 
-    // Add movie titles
+    // Adicionar títulos dos filmes
     node.append("text")
       .attr("class", "network-node-text")
       .attr("dy", 5)
       .style("fill", "white")
       .style("font-family", "Inter, sans-serif")
-      .style("font-size", d => d.type === "central" ? "16px" : "13px")
-      .style("font-weight", "700")
+      .style("font-size", d => d.type === "central" ? "14px" : "12px")
+      .style("font-weight", "800")
       .style("text-anchor", "middle")
       .style("pointer-events", "none")
       .style("text-shadow", "0 0 15px rgba(0, 0, 0, 0.9)")
       .each(function(d) {
         const text = d3.select(this);
         const words = d.title.split(' ');
-        const maxCharsPerLine = d.type === "central" ? 10 : 8;
+        const maxCharsPerLine = d.type === "central" ? 12 : 10;
         let line = [];
         let lineNumber = 0;
-        const lineHeight = 1.1;
-        const dy = d.type === "central" ? -10 : -5;
+        const lineHeight = 1.2;
+        const dy = d.type === "central" ? -8 : -6;
         
         text.text(null);
         
@@ -172,53 +183,48 @@ const NetworkPage = () => {
         }
       });
 
-    // Add subtitle with movie rating
+    // Adicionar avaliações
     node.append("text")
-      .attr("class", "network-node-subtitle")
-      .attr("dy", d => d.type === "central" ? 45 : 35)
-      .style("fill", "rgba(255, 255, 255, 0.8)")
+      .attr("class", "network-node-rating")
+      .attr("dy", d => d.type === "central" ? 50 : 40)
+      .style("fill", "rgba(255, 255, 255, 0.9)")
       .style("font-family", "Inter, sans-serif")
-      .style("font-size", d => d.type === "central" ? "12px" : "10px")
-      .style("font-weight", "400")
+      .style("font-size", d => d.type === "central" ? "13px" : "11px")
+      .style("font-weight", "600")
       .style("text-anchor", "middle")
       .style("pointer-events", "none")
       .style("text-shadow", "0 0 10px rgba(0, 0, 0, 0.8)")
-      .text(d => {
-        // Get the movie data to show rating
-        const movieData = d.type === "central" ? networkData.central_movie : 
-          networkData.related_movies.find(m => m.id === d.id);
-        return movieData ? `★ ${movieData.vote_average.toFixed(1)}` : '';
-      });
+      .text(d => `★ ${d.vote_average?.toFixed(1) || 'N/A'}`);
 
-    // Add click handler for nodes
+    // Manipuladores de clique
     node.on("click", (event, d) => {
       if (d.type === "related") {
-        // Smooth transition to new movie
+        // Transição suave para novo filme
         const transition = d3.transition().duration(1000);
         
-        // Fade out current network
         container.transition(transition)
           .style("opacity", 0)
           .on("end", () => {
-            // Navigate to new movie
             navigate(`/network/${d.id}`, { replace: true });
           });
       }
     });
 
-    // Hover effects
+    // Efeitos de hover
     node.on("mouseenter", function(event, d) {
       if (d.type === "related") {
         d3.select(this).select("circle")
           .transition()
           .duration(200)
-          .attr("r", 55)
-          .style("filter", "drop-shadow(0 0 25px rgba(78, 205, 196, 0.9)) brightness(1.3)");
+          .attr("r", 60)
+          .style("filter", "drop-shadow(0 0 30px rgba(46, 213, 115, 0.8)) brightness(1.2)")
+          .style("stroke-width", 4);
         
         d3.select(this).selectAll("text")
           .transition()
           .duration(200)
-          .style("font-weight", "800");
+          .style("font-weight", "900")
+          .style("font-size", d => d.type === "central" ? "14px" : "13px");
       }
     })
     .on("mouseleave", function(event, d) {
@@ -226,18 +232,24 @@ const NetworkPage = () => {
         d3.select(this).select("circle")
           .transition()
           .duration(200)
-          .attr("r", 45)
-          .style("filter", "drop-shadow(0 0 10px rgba(78, 205, 196, 0.4))");
+          .attr("r", 50)
+          .style("filter", "drop-shadow(0 0 15px rgba(46, 213, 115, 0.5))")
+          .style("stroke-width", 3);
         
         d3.select(this).selectAll("text")
           .transition()
           .duration(200)
-          .style("font-weight", d.type === "central" ? "700" : "700");
+          .style("font-weight", "800")
+          .style("font-size", d => d.type === "central" ? "14px" : "12px");
       }
     });
 
-    // Update positions on simulation tick
+    // Atualizar posições na simulação
     simulation.on("tick", () => {
+      // Manter o nó central fixo
+      centralNode.fx = width / 2;
+      centralNode.fy = height / 2;
+
       link
         .attr("x1", d => d.source.x)
         .attr("y1", d => d.source.y)
@@ -247,7 +259,7 @@ const NetworkPage = () => {
       node.attr("transform", d => `translate(${d.x},${d.y})`);
     });
 
-    // Drag functions
+    // Funções de arrastar
     function dragstarted(event, d) {
       if (!event.active) simulation.alphaTarget(0.3).restart();
       d.fx = d.x;
@@ -261,36 +273,40 @@ const NetworkPage = () => {
 
     function dragended(event, d) {
       if (!event.active) simulation.alphaTarget(0);
-      if (d.type !== "central") {
+      // Manter o nó central sempre fixo
+      if (d.type === "central") {
+        d.fx = width / 2;
+        d.fy = height / 2;
+      } else {
+        // Permitir que nós relacionados se movam livremente após arrastar
         d.fx = null;
         d.fy = null;
       }
     }
 
-    // Entrance animation
+    // Animação de entrada
     container.style("opacity", 0)
       .transition()
       .duration(1500)
       .style("opacity", 1);
 
-    // Animate nodes entrance
+    // Animar entrada dos nós
     node.style("opacity", 0)
       .transition()
-      .delay((d, i) => i * 200)
+      .delay((d, i) => i * 150)
       .duration(800)
-      .style("opacity", 1)
-      .style("transform", "scale(1)");
+      .style("opacity", 1);
 
-    // Initial zoom to fit content - do this after a delay to ensure nodes are positioned
+    // Zoom inicial para ajustar conteúdo
     setTimeout(() => {
       const bounds = container.node().getBBox();
-      const fullWidth = bounds.width;
-      const fullHeight = bounds.height;
-      const widthRatio = (width * 0.8) / fullWidth;
-      const heightRatio = (height * 0.8) / fullHeight;
-      const scale = Math.min(widthRatio, heightRatio, 1);
-      
-      if (fullWidth > 0 && fullHeight > 0) {
+      if (bounds.width > 0 && bounds.height > 0) {
+        const fullWidth = bounds.width;
+        const fullHeight = bounds.height;
+        const widthRatio = (width * 0.7) / fullWidth;
+        const heightRatio = (height * 0.7) / fullHeight;
+        const scale = Math.min(widthRatio, heightRatio, 1);
+        
         svg.transition()
           .duration(1000)
           .call(zoom.transform, d3.zoomIdentity
@@ -298,7 +314,12 @@ const NetworkPage = () => {
                       (height - fullHeight * scale) / 2 - bounds.y * scale)
             .scale(scale));
       }
-    }, 1000);
+    }, 1200);
+
+    // Parar simulação após um tempo para economizar CPU
+    setTimeout(() => {
+      simulation.stop();
+    }, 5000);
   };
 
   if (loading) {
@@ -306,7 +327,7 @@ const NetworkPage = () => {
       <div className="network-container">
         <div className="network-header">
           <button onClick={() => navigate("/")} className="back-button">
-            ← Back to Search
+            ← Voltar à Pesquisa
           </button>
         </div>
         <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
@@ -322,11 +343,11 @@ const NetworkPage = () => {
     <div className="network-container">
       <div className="network-header">
         <button onClick={() => navigate("/")} className="back-button">
-          ← Back to Search
+          ← Voltar à Pesquisa
         </button>
         {networkData && (
           <h2 style={{ color: "white", margin: "0 2rem", fontSize: "1.2rem" }}>
-            Movie Network: {networkData.central_movie.title}
+            Rede do Filme: {networkData.central_movie.title}
           </h2>
         )}
       </div>

@@ -22,7 +22,7 @@ const SearchPage = () => {
       setResults(response.data.results);
       setHasSearched(true);
     } catch (error) {
-      console.error("Error searching movies:", error);
+      console.error("Erro ao buscar filmes:", error);
       setResults([]);
     } finally {
       setLoading(false);
@@ -34,7 +34,7 @@ const SearchPage = () => {
   };
 
   const getMovieYear = (releaseDate) => {
-    return releaseDate ? new Date(releaseDate).getFullYear() : "Unknown";
+    return releaseDate ? new Date(releaseDate).getFullYear() : "Desconhecido";
   };
 
   return (
@@ -42,20 +42,20 @@ const SearchPage = () => {
       <div className="search-header">
         <h1 className="search-title">CineMap</h1>
         <p className="search-subtitle">
-          Discover movies through an interactive network of connections. Search for any film and explore its cinematic universe.
+          Descubra filmes através de uma rede interativa de conexões. Pesquise qualquer filme e explore seu universo cinematográfico.
         </p>
       </div>
 
       <form onSubmit={handleSearch} className="search-form">
         <input
           type="text"
-          placeholder="Search for a movie..."
+          placeholder="Pesquisar um filme..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="search-input"
         />
         <button type="submit" className="search-button" disabled={loading}>
-          {loading ? "Searching..." : "Explore"}
+          {loading ? "Buscando..." : "Explorar"}
         </button>
       </form>
 
@@ -70,7 +70,7 @@ const SearchPage = () => {
           {results.length > 0 ? (
             <>
               <h2 style={{ color: "rgba(255, 255, 255, 0.9)", marginBottom: "1rem", textAlign: "center" }}>
-                Found {results.length} results
+                Encontrados {results.length} resultados
               </h2>
               <div className="results-grid">
                 {results.map((movie) => (
@@ -100,7 +100,7 @@ const SearchPage = () => {
                           fontSize: '0.9rem'
                         }}
                       >
-                        No Image
+                        Sem Imagem
                       </div>
                     )}
                     <h3 className="movie-title">{movie.title}</h3>
@@ -115,8 +115,8 @@ const SearchPage = () => {
             </>
           ) : (
             <div style={{ textAlign: "center", color: "rgba(255, 255, 255, 0.7)" }}>
-              <h3>No movies found</h3>
-              <p>Try searching with a different title</p>
+              <h3>Nenhum filme encontrado</h3>
+              <p>Tente pesquisar com um título diferente</p>
             </div>
           )}
         </div>
