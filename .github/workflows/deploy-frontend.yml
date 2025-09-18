@@ -1,0 +1,60 @@
+name: Deploy Frontend
+
+on: 
+  push:
+    branches:
+      - main # Ou o branch que você usa para o código principal do frontend
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout do Código
+      uses: actions/checkout@v4
+
+    - name: Configurar Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20' # Use a versão do Node.js que seu projeto React utiliza
+
+    - name: Instalar Dependências
+      run: npm install --legacy-peer-deps # Use --legacy-peer-deps se necessário, como fizemos localmente
+      working-directory: ./frontend # Certifique-se de que este é o caminho correto para a pasta do seu frontend
+
+    - name: Construir o Projeto
+      run: npm run build
+      working-directory: ./frontend # Caminho para a pasta do seu frontend
+
+    - name: Upload dos Artefatos de Build (Opcional)
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifact
+        path: ./frontend/build # Caminho para a pasta 'build' gerada
+
+    # --- Próximos passos para deploy (ex: Netlify, Vercel, SSH) --- 
+    # Esta parte é opcional e depende de onde você quer fazer o deploy.
+    # Exemplo para Netlify (requer configuração de variáveis de ambiente no GitHub Secrets):
+    # - name: Deploy para Netlify
+    #   uses: nwtgck/actions-netlify@v2.0
+    #   with:
+    #     publish-dir: './frontend/build'
+    #     production-branch: main
+    #     netlify-auth-token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+    #     netlify-site-id: ${{ secrets.NETLIFY_SITE_ID }}
+    #   env:
+    #     REACT_APP_BACKEND_URL: ${{ secrets.REACT_APP_BACKEND_URL }}
+
+    # Exemplo para Vercel (requer configuração de variáveis de ambiente no GitHub Secrets):
+    # - name: Deploy para Vercel
+    #   uses: amondnet/vercel-action@v25
+    #   with:
+    #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
+    #     org-id: ${{ secrets.VERCEL_ORG_ID }}
+    #     project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+    #     scope: 'frontend'
+    #   env:
+    #     REACT_APP_BACKEND_URL: ${{ secrets.REACT_APP_BACKEND_URL }}
